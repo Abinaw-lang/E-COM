@@ -1,6 +1,6 @@
 {
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "framework": "react",
+  "framework": "vite",
   "installCommand": "npm install"
 }
