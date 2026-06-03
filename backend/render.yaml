@@ -1,0 +1,19 @@
+runtime: node
+services:
+  - type: web
+    name: ecommerce-backend
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: MONGODB_URI
+        scope: build,runtime
+      - key: JWT_SECRET
+        scope: build,runtime
+      - key: RAZORPAY_KEY_ID
+        scope: build,runtime
+      - key: RAZORPAY_KEY_SECRET
+        scope: build,runtime
+      - key: FRONTEND_URL
+        scope: build,runtime
+      - key: NODE_ENV
+        value: production

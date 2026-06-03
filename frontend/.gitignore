@@ -1,0 +1,17 @@
+# Frontend .gitignore
+node_modules/
+.env
+.env.local
+.env.*.local
+dist/
+dist-ssr/
+*.local
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+coverage/
+.cache/
+.eslintcache
