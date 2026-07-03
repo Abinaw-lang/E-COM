@@ -7,7 +7,6 @@ import ProductCard from '../components/ProductCard';
 import JerseyHeroScene from '../components/JerseyHeroScene';
 import AmbientEffects from '../components/AmbientEffects';
 import { productService } from '../services';
-import { mockJerseys } from '../data/mockJerseys';
 import { ArrowDown, ChevronRight, Package, Truck, Shield, Sparkles, Zap } from 'lucide-react';
 
 const Home = () => {
@@ -20,10 +19,9 @@ const Home = () => {
     const fetchFeatured = async () => {
       try {
         const response = await productService.getFeaturedProducts();
-        const products = response?.data?.data?.length ? response.data.data : mockJerseys;
-        setFeaturedProducts(products.slice(0, 4));
+        setFeaturedProducts((response?.data?.data || []).slice(0, 4));
       } catch (error) {
-        setFeaturedProducts(mockJerseys.slice(0, 4));
+        setFeaturedProducts([]);
       } finally {
         setLoading(false);
       }
@@ -162,7 +160,7 @@ const Home = () => {
               <div key={index} className="h-[390px] rounded-2xl loading-shimmer" />
             ))}
           </div>
-        ) : (
+        ) : featuredProducts.length > 0 ? (
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             {featuredProducts.map((product) => (
               <motion.div
@@ -174,6 +172,11 @@ const Home = () => {
                 <ProductCard product={product} />
               </motion.div>
             ))}
+          </div>
+        ) : (
+          <div className="glass-card rounded-2xl p-8 text-center">
+            <p className="text-slate-200">No featured products available yet.</p>
+            <p className="text-sm text-slate-400 mt-2">Admin can mark products as featured from product management.</p>
           </div>
         )}
       </section>

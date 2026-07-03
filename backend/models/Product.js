@@ -17,6 +17,13 @@ const productSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Please provide product category'],
       enum: [
+        'Football Clubs',
+        'National Teams',
+        'Basketball Jerseys',
+        'Cricket Jerseys',
+        'Retro Jerseys',
+        'Training Kits',
+        'Limited Edition',
         'Electronics',
         'Clothing',
         'Books',

@@ -3,17 +3,17 @@ import { motion } from 'framer-motion';
 import MainLayout from '../layouts/MainLayout';
 import ProductCard from '../components/ProductCard';
 import { productService } from '../services';
-import { mockJerseys } from '../data/mockJerseys';
 import { Filter, Grid, List, Sparkles, X } from 'lucide-react';
 
 const Products = () => {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState('');
   const [filters, setFilters] = useState({
     category: '',
-    minPrice: 1000,
-    maxPrice: 9000,
+    minPrice: 0,
+    maxPrice: 100000,
     search: '',
     sort: 'createdAt:desc',
     color: '',
@@ -29,11 +29,12 @@ const Products = () => {
     const fetchProducts = async () => {
       try {
         setLoading(true);
-        const res = await productService.getAllProducts(filters);
-        const incoming = res?.data?.data?.length ? res.data.data : mockJerseys;
-        setProducts(incoming);
+        setFetchError('');
+        const res = await productService.getAllProducts({ ...filters, page: 1, limit: 100 });
+        setProducts(res?.data?.data || []);
       } catch (error) {
-        setProducts(mockJerseys);
+        setProducts([]);
+        setFetchError('Unable to load products right now. Please try again.');
       } finally {
         setLoading(false);
       }
@@ -45,9 +46,9 @@ const Products = () => {
     const fetchCategories = async () => {
       try {
         const res = await productService.getCategories();
-        setCategories(res?.data?.data?.length ? res.data.data : [...new Set(mockJerseys.map((item) => item.category))]);
+        setCategories(res?.data?.data || []);
       } catch (error) {
-        setCategories([...new Set(mockJerseys.map((item) => item.category))]);
+        setCategories([]);
       }
     };
     fetchCategories();
@@ -195,8 +196,8 @@ const Products = () => {
                     <label className="text-sm">Min Price: ₹{filters.minPrice}</label>
                     <input
                       type="range"
-                      min="1000"
-                      max="9000"
+                      min="0"
+                      max="100000"
                       value={filters.minPrice}
                       onChange={(e) => handleFilterChange('minPrice', e.target.value)}
                       className="w-full"
@@ -206,8 +207,8 @@ const Products = () => {
                     <label className="text-sm">Max Price: ₹{filters.maxPrice}</label>
                     <input
                       type="range"
-                      min="1000"
-                      max="9000"
+                      min="0"
+                      max="100000"
                       value={filters.maxPrice}
                       onChange={(e) => handleFilterChange('maxPrice', e.target.value)}
                       className="w-full"
@@ -321,7 +322,7 @@ const Products = () => {
               </div>
             ) : (
               <div className="text-center py-12">
-                <p className="text-xl text-slate-300">No products found</p>
+                <p className="text-xl text-slate-300">{fetchError || 'No products found'}</p>
               </div>
             )}
           </div>

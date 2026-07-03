@@ -5,21 +5,35 @@ import { productService } from '../services';
 import { toast } from 'react-toastify';
 import MainLayout from '../layouts/MainLayout';
 
+const CATEGORY_OPTIONS = [
+  'Football Clubs',
+  'National Teams',
+  'Basketball Jerseys',
+  'Cricket Jerseys',
+  'Retro Jerseys',
+  'Training Kits',
+  'Limited Edition'
+];
+
+const getInitialFormState = () => ({
+  title: '',
+  description: '',
+  category: '',
+  price: '',
+  discountPrice: '',
+  stock: '',
+  imageUrl: '',
+  isFeatured: false,
+  isActive: true
+});
+
 const AdminProducts = () => {
   const [products, setProducts] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    category: '',
-    price: '',
-    discountPrice: '',
-    stock: '',
-    images: []
-  });
+  const [formData, setFormData] = useState(getInitialFormState());
 
   useEffect(() => {
     fetchProducts();
@@ -28,7 +42,7 @@ const AdminProducts = () => {
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      const response = await productService.getProducts();
+      const response = await productService.getAllProducts({ page: 1, limit: 200 });
       setProducts(response.data.data);
     } catch (error) {
       toast.error('Failed to fetch products');
@@ -50,25 +64,61 @@ const AdminProducts = () => {
   };
 
   const handleEdit = (product) => {
-    setFormData(product);
+    setFormData({
+      title: product.title || '',
+      description: product.description || '',
+      category: product.category || '',
+      price: product.price ?? '',
+      discountPrice: product.discountPrice ?? '',
+      stock: product.stock ?? '',
+      imageUrl: product.images?.[0]?.url || '',
+      isFeatured: Boolean(product.isFeatured),
+      isActive: product.isActive !== false
+    });
     setEditingId(product._id);
     setShowForm(true);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!formData.imageUrl.trim()) {
+      toast.error('Product image URL is required');
+      return;
+    }
+
+    const payload = {
+      title: formData.title.trim(),
+      description: formData.description.trim(),
+      category: formData.category,
+      price: Number(formData.price),
+      discountPrice: formData.discountPrice ? Number(formData.discountPrice) : 0,
+      stock: Number(formData.stock),
+      images: [{ url: formData.imageUrl.trim() }],
+      isFeatured: formData.isFeatured,
+      isActive: formData.isActive
+    };
+
+    if (payload.discountPrice > 0 && payload.discountPrice >= payload.price) {
+      toast.error('Discount price must be lower than product price');
+      return;
+    }
+
     try {
       if (editingId) {
-        await productService.updateProduct(editingId, formData);
+        await productService.updateProduct(editingId, payload);
         toast.success('Product updated');
       } else {
-        await productService.createProduct(formData);
+        await productService.createProduct(payload);
         toast.success('Product created');
       }
       setShowForm(false);
+      setFormData(getInitialFormState());
+      setEditingId(null);
       fetchProducts();
     } catch (error) {
-      toast.error('Failed to save product');
+      const apiError = error?.response?.data?.errors?.[0]?.message || error?.response?.data?.message;
+      toast.error(apiError || 'Failed to save product');
     }
   };
 
@@ -85,15 +135,7 @@ const AdminProducts = () => {
             <motion.button
               whileHover={{ scale: 1.05 }}
               onClick={() => {
-                setFormData({
-                  title: '',
-                  description: '',
-                  category: '',
-                  price: '',
-                  discountPrice: '',
-                  stock: '',
-                  images: []
-                });
+                setFormData(getInitialFormState());
                 setEditingId(null);
                 setShowForm(true);
               }}
@@ -129,6 +171,7 @@ const AdminProducts = () => {
                     <th className="px-6 py-3 text-left text-sm font-semibold">Category</th>
                     <th className="px-6 py-3 text-left text-sm font-semibold">Price</th>
                     <th className="px-6 py-3 text-left text-sm font-semibold">Stock</th>
+                    <th className="px-6 py-3 text-left text-sm font-semibold">Status</th>
                     <th className="px-6 py-3 text-left text-sm font-semibold">Actions</th>
                   </tr>
                 </thead>
@@ -139,6 +182,11 @@ const AdminProducts = () => {
                       <td className="px-6 py-4">{product.category}</td>
                       <td className="px-6 py-4">₹{product.price}</td>
                       <td className="px-6 py-4">{product.stock}</td>
+                      <td className="px-6 py-4">
+                        <span className={`px-3 py-1 rounded-full text-xs ${product.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                          {product.isActive ? 'Active' : 'Inactive'}
+                        </span>
+                      </td>
                       <td className="px-6 py-4 flex gap-2">
                         <button
                           onClick={() => handleEdit(product)}
@@ -189,11 +237,11 @@ const AdminProducts = () => {
                       required
                     >
                       <option value="">Select Category</option>
-                      <option value="electronics">Electronics</option>
-                      <option value="fashion">Fashion</option>
-                      <option value="home">Home</option>
-                      <option value="sports">Sports</option>
-                      <option value="books">Books</option>
+                      {CATEGORY_OPTIONS.map((category) => (
+                        <option key={category} value={category}>
+                          {category}
+                        </option>
+                      ))}
                     </select>
                   </div>
 
@@ -229,6 +277,34 @@ const AdminProducts = () => {
                       className="border rounded-lg px-4 py-2 dark:bg-gray-700 dark:border-gray-600"
                       required
                     />
+                  </div>
+
+                  <input
+                    type="url"
+                    placeholder="Primary Image URL"
+                    value={formData.imageUrl}
+                    onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
+                    className="w-full border rounded-lg px-4 py-2 dark:bg-gray-700 dark:border-gray-600"
+                    required
+                  />
+
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <label className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={formData.isFeatured}
+                        onChange={(e) => setFormData({ ...formData, isFeatured: e.target.checked })}
+                      />
+                      Featured product
+                    </label>
+                    <label className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={formData.isActive}
+                        onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                      />
+                      Active product
+                    </label>
                   </div>
 
                   <div className="flex gap-4">

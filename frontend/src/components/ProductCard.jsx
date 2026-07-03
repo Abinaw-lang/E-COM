@@ -7,6 +7,8 @@ import { useWishlist } from '../context/WishlistContext';
 import { formatPrice } from '../utils/helpers';
 import { motion } from 'framer-motion';
 
+const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1521412644187-c49fa049e84d?auto=format&fit=crop&w=1200&q=80';
+
 const ProductCard = ({ product, onCompare }) => {
   const navigate = useNavigate();
   const { addToCart } = useCart();
@@ -36,7 +38,7 @@ const ProductCard = ({ product, onCompare }) => {
     ? Math.round(((product.price - product.discountPrice) / product.price) * 100)
     : 0;
 
-  const productSizes = product.sizes || ['S', 'M', 'L'];
+  const productSizes = Array.isArray(product.sizes) ? product.sizes : [];
 
   return (
     <motion.div
@@ -47,7 +49,7 @@ const ProductCard = ({ product, onCompare }) => {
     >
       <div className="relative overflow-hidden bg-slate-800 h-64">
         <img
-          src={product.images[0]?.url || '/placeholder.jpg'}
+          src={product.images?.[0]?.url || FALLBACK_IMAGE}
           alt={product.title}
           className="w-full h-full object-cover hover:scale-110 transition duration-500"
         />
@@ -55,7 +57,7 @@ const ProductCard = ({ product, onCompare }) => {
         <div className="absolute top-3 right-3 bg-secondary text-white px-3 py-1 rounded-full text-xs font-semibold shadow-lg shadow-secondary/20">
           {discountPercent > 0 ? `-${discountPercent}%` : 'New'}
         </div>
-        <div className="absolute top-3 left-3 premium-chip text-xs">{product.brand || 'Elite Series'}</div>
+        {product.brand && <div className="absolute top-3 left-3 premium-chip text-xs">{product.brand}</div>}
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -89,16 +91,18 @@ const ProductCard = ({ product, onCompare }) => {
               <span className="text-sm text-slate-400 line-through ml-2">{formatPrice(product.price)}</span>
             )}
           </div>
-          <div className="text-xs text-slate-300">Stock: {product.stock || 12}</div>
+          <div className="text-xs text-slate-300">Stock: {product.stock ?? 0}</div>
         </div>
 
-        <div className="flex flex-wrap gap-2 mb-4">
-          {productSizes.map((size) => (
-            <span key={size} className="premium-chip text-[11px]">
-              {size}
-            </span>
-          ))}
-        </div>
+        {productSizes.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-4">
+            {productSizes.map((size) => (
+              <span key={size} className="premium-chip text-[11px]">
+                {size}
+              </span>
+            ))}
+          </div>
+        )}
 
         <div className="flex gap-2">
           {onCompare && (

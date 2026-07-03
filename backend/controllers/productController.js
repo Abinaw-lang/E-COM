@@ -143,7 +143,11 @@ const deleteProduct = asyncHandler(async (req, res, next) => {
 // @route   GET /api/products/featured
 // @access  Public
 const getFeaturedProducts = asyncHandler(async (req, res, next) => {
-  const products = await Product.find({ isFeatured: true, isActive: true }).limit(6);
+  let products = await Product.find({ isFeatured: true, isActive: true }).limit(6);
+
+  if (products.length === 0) {
+    products = await Product.find({ isActive: true }).sort({ createdAt: -1 }).limit(6);
+  }
 
   res.status(200).json({
     success: true,
