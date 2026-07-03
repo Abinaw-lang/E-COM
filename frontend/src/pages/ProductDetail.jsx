@@ -1,13 +1,36 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { Canvas } from '@react-three/fiber';
+import { OrbitControls, Float } from '@react-three/drei';
 import MainLayout from '../layouts/MainLayout';
 import { productService, reviewService } from '../services';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
 import { toast } from 'react-toastify';
-import { Heart, ShoppingCart, Star, Truck, Shield } from 'lucide-react';
+import { Heart, ShoppingCart, Star, Truck, Shield, RotateCcw } from 'lucide-react';
 import { formatPrice } from '../utils/helpers';
+
+const Jersey3D = ({ color, frontView }) => {
+  return (
+    <Float speed={1.5} rotationIntensity={0.4} floatIntensity={0.9}>
+      <group rotation={[0, frontView ? 0 : Math.PI, 0]}>
+        <mesh position={[0, 0.3, 0]}>
+          <boxGeometry args={[1.6, 2.1, 0.45]} />
+          <meshStandardMaterial color={color} roughness={0.38} metalness={0.15} />
+        </mesh>
+        <mesh position={[-1.15, 0.4, 0]} rotation={[0, 0, 0.35]}>
+          <boxGeometry args={[0.65, 0.9, 0.45]} />
+          <meshStandardMaterial color="#131722" />
+        </mesh>
+        <mesh position={[1.15, 0.4, 0]} rotation={[0, 0, -0.35]}>
+          <boxGeometry args={[0.65, 0.9, 0.45]} />
+          <meshStandardMaterial color="#131722" />
+        </mesh>
+      </group>
+    </Float>
+  );
+};
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -16,6 +39,9 @@ const ProductDetail = () => {
   const [reviews, setReviews] = useState([]);
   const [quantity, setQuantity] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [selectedColor, setSelectedColor] = useState('#3a6bff');
+  const [frontView, setFrontView] = useState(true);
+  const [selectedSize, setSelectedSize] = useState('M');
   const { addToCart } = useCart();
   const { addToWishlist } = useWishlist();
 
@@ -23,7 +49,12 @@ const ProductDetail = () => {
     const fetchProduct = async () => {
       try {
         const res = await productService.getProductById(id);
-        setProduct(res.data.data);
+        const loadedProduct = res.data.data;
+        setProduct(loadedProduct);
+
+        const previous = JSON.parse(localStorage.getItem('recentlyViewed') || '[]');
+        const merged = [loadedProduct, ...previous.filter((item) => item._id !== loadedProduct._id)].slice(0, 8);
+        localStorage.setItem('recentlyViewed', JSON.stringify(merged));
 
         const reviewRes = await reviewService.getProductReviews(id);
         setReviews(reviewRes.data.data);
@@ -131,7 +162,39 @@ const ProductDetail = () => {
             </div>
 
             {/* Description */}
-            <p className="text-gray-600 dark:text-gray-400 mb-6">{product.description}</p>
+            <p className="text-slate-300 mb-6">{product.description}</p>
+
+            <div className="mb-6">
+              <p className="font-semibold mb-2">Choose Color</p>
+              <div className="flex gap-2">
+                {['#3a6bff', '#ef3340', '#f2f4ff', '#0f1218'].map((color) => (
+                  <button
+                    key={color}
+                    type="button"
+                    aria-label={`Color ${color}`}
+                    onClick={() => setSelectedColor(color)}
+                    className={`h-8 w-8 rounded-full border-2 ${selectedColor === color ? 'border-primary' : 'border-white/20'}`}
+                    style={{ backgroundColor: color }}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <div className="mb-6">
+              <p className="font-semibold mb-2">Select Size</p>
+              <div className="flex gap-2">
+                {(product.sizes || ['S', 'M', 'L', 'XL']).map((size) => (
+                  <button
+                    key={size}
+                    type="button"
+                    onClick={() => setSelectedSize(size)}
+                    className={`rounded-md px-3 py-1 border ${selectedSize === size ? 'border-primary bg-primary/10 text-primary' : 'border-white/20 text-slate-200'}`}
+                  >
+                    {size}
+                  </button>
+                ))}
+              </div>
+            </div>
 
             {/* Quantity Selector */}
             <div className="flex items-center gap-4 mb-6">
@@ -188,6 +251,29 @@ const ProductDetail = () => {
             </div>
           </motion.div>
         </div>
+
+        <section className="glass-card rounded-2xl p-4 sm:p-8 mb-12">
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="text-2xl font-bold">3D Product View</h2>
+            <button
+              type="button"
+              onClick={() => setFrontView((value) => !value)}
+              className="btn-ripple inline-flex items-center gap-2 rounded-lg border border-white/20 px-4 py-2 hover:border-primary transition"
+            >
+              <RotateCcw size={16} /> Switch {frontView ? 'Back' : 'Front'}
+            </button>
+          </div>
+          <div className="h-[380px] rounded-2xl bg-black/35 border border-white/10">
+            <Canvas camera={{ position: [0, 0.8, 4.2], fov: 46 }}>
+              <ambientLight intensity={0.5} />
+              <directionalLight position={[2, 3, 2]} intensity={1.4} color="#6fc2ff" />
+              <pointLight position={[-2, 1, 2]} intensity={5} color="#ef3340" />
+              <Jersey3D color={selectedColor} frontView={frontView} />
+              <OrbitControls enablePan={false} minDistance={2.8} maxDistance={6} />
+            </Canvas>
+          </div>
+          <p className="text-sm text-slate-300 mt-4">Rotate and zoom with mouse. Selected size: {selectedSize}</p>
+        </section>
 
         {/* Reviews Section */}
         <div className="border-t pt-12">

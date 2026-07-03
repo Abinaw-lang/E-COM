@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Package, Truck, CheckCircle, Clock, MapPin, Phone, Mail } from 'lucide-react';
 import { orderService } from '../services';
 import MainLayout from '../layouts/MainLayout';
+import SuccessConfetti from '../components/SuccessConfetti';
 
 const statusColors = {
   pending: 'bg-yellow-100 text-yellow-800',
@@ -23,9 +24,11 @@ const statusIcons = {
 export default function OrderDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showSuccessFx, setShowSuccessFx] = useState(Boolean(location.state?.paymentSuccess));
 
   useEffect(() => {
     fetchOrder();
@@ -75,11 +78,25 @@ export default function OrderDetail() {
   }
 
   const StatusIcon = statusIcons[order.orderStatus] || CheckCircle;
+  const trackingCode = location.state?.trackingCode || order.trackingNumber || `JH-${String(order._id).slice(-6).toUpperCase()}`;
+  const trackingSteps = [
+    { label: 'Order Placed', done: true },
+    { label: 'Confirmed', done: ['confirmed', 'shipped', 'delivered'].includes(order.orderStatus) },
+    { label: 'Shipped', done: ['shipped', 'delivered'].includes(order.orderStatus) },
+    { label: 'Delivered', done: order.orderStatus === 'delivered' }
+  ];
 
   return (
     <MainLayout>
+      <SuccessConfetti active={showSuccessFx} />
       <div className="min-h-screen bg-gray-50 py-12 px-4">
         <div className="max-w-4xl mx-auto">
+          {showSuccessFx && (
+            <div className="mb-6 rounded-xl border border-green-500/35 bg-green-500/10 p-4 text-green-200">
+              Payment confirmed. Your order is now in processing.
+            </div>
+          )}
+
           {/* Header */}
           <button
             onClick={() => navigate('/user-profile')}
@@ -121,8 +138,19 @@ export default function OrderDetail() {
               </div>
               <div>
                 <p className="text-sm text-gray-600 mb-1">Tracking Number</p>
-                <p className="font-semibold">{order.trackingNumber || 'Not assigned'}</p>
+                <p className="font-semibold">{trackingCode}</p>
               </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">Order Tracking</h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {trackingSteps.map((step) => (
+                <div key={step.label} className={`rounded-lg border px-3 py-3 text-sm ${step.done ? 'border-green-400 bg-green-50 text-green-700' : 'border-gray-200 bg-gray-50 text-gray-500'}`}>
+                  {step.label}
+                </div>
+              ))}
             </div>
           </div>
 

@@ -20,7 +20,7 @@ const Checkout = () => {
     zipCode: '',
     country: 'India'
   });
-  const [paymentData, setPaymentData] = useState(null);
+  const [paymentMethod, setPaymentMethod] = useState('Razorpay');
 
   useEffect(() => {
     if (!cart || cart.products.length === 0) {
@@ -71,7 +71,12 @@ const Checkout = () => {
             });
             toast.success('Payment successful!');
             await clearCart();
-            navigate(`/orders/${orderId}`);
+            navigate(`/orders/${orderId}`, {
+              state: {
+                paymentSuccess: true,
+                trackingCode: `JH-${String(orderId).slice(-6).toUpperCase()}`
+              }
+            });
           } catch (error) {
             toast.error('Payment verification failed');
           }
@@ -100,6 +105,17 @@ const Checkout = () => {
       <div className="max-w-7xl mx-auto px-4 py-12">
         <h1 className="text-4xl font-bold mb-8">Checkout</h1>
 
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
+          {['Shipping', 'Payment', 'Review', 'Confirmation'].map((step, index) => (
+            <div
+              key={step}
+              className={`rounded-lg px-4 py-3 text-center text-sm font-semibold border ${index < 2 ? 'border-primary bg-primary/10 text-primary' : 'border-white/15 text-slate-300'}`}
+            >
+              {index + 1}. {step}
+            </div>
+          ))}
+        </div>
+
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Shipping Form */}
           <motion.div
@@ -107,7 +123,7 @@ const Checkout = () => {
             animate={{ opacity: 1, x: 0 }}
             className="lg:col-span-2"
           >
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+            <div className="glass-card rounded-lg p-6">
               <h2 className="text-2xl font-bold mb-6">Shipping Address</h2>
 
               <form onSubmit={handleSubmit} className="space-y-4">
@@ -119,7 +135,7 @@ const Checkout = () => {
                     value={formData.street}
                     onChange={handleChange}
                     required
-                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:bg-gray-700 dark:border-gray-600"
+                    className="w-full px-4 py-2 border border-white/20 bg-black/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                   />
                 </div>
 
@@ -132,7 +148,7 @@ const Checkout = () => {
                       value={formData.city}
                       onChange={handleChange}
                       required
-                      className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:bg-gray-700 dark:border-gray-600"
+                      className="w-full px-4 py-2 border border-white/20 bg-black/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                     />
                   </div>
                   <div>
@@ -143,7 +159,7 @@ const Checkout = () => {
                       value={formData.state}
                       onChange={handleChange}
                       required
-                      className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:bg-gray-700 dark:border-gray-600"
+                      className="w-full px-4 py-2 border border-white/20 bg-black/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                     />
                   </div>
                 </div>
@@ -157,7 +173,7 @@ const Checkout = () => {
                       value={formData.zipCode}
                       onChange={handleChange}
                       required
-                      className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:bg-gray-700 dark:border-gray-600"
+                      className="w-full px-4 py-2 border border-white/20 bg-black/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                     />
                   </div>
                   <div>
@@ -166,7 +182,7 @@ const Checkout = () => {
                       name="country"
                       value={formData.country}
                       onChange={handleChange}
-                      className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:bg-gray-700 dark:border-gray-600"
+                      className="w-full px-4 py-2 border border-white/20 bg-black/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                     >
                       <option>India</option>
                       <option>USA</option>
@@ -175,12 +191,28 @@ const Checkout = () => {
                   </div>
                 </div>
 
+                <div>
+                  <label className="block font-semibold mb-2">Payment Method</label>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {['Stripe', 'Razorpay', 'UPI', 'Card', 'Wallet'].map((method) => (
+                      <button
+                        key={method}
+                        type="button"
+                        onClick={() => setPaymentMethod(method)}
+                        className={`rounded-lg px-3 py-2 border text-sm ${paymentMethod === method ? 'border-primary bg-primary/10 text-primary' : 'border-white/20 text-slate-200'}`}
+                      >
+                        {method}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full bg-primary text-white py-3 rounded-lg hover:bg-opacity-90 transition font-semibold disabled:opacity-50"
+                  className="w-full bg-gradient-to-r from-primary to-accent text-slate-900 py-3 rounded-lg hover:shadow-neon transition font-bold disabled:opacity-50"
                 >
-                  {loading ? 'Processing...' : 'Proceed to Payment'}
+                  {loading ? 'Processing...' : `Proceed to ${paymentMethod}`}
                 </button>
               </form>
             </div>
@@ -192,7 +224,7 @@ const Checkout = () => {
             animate={{ opacity: 1, x: 0 }}
             className="lg:col-span-1"
           >
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 sticky top-20">
+            <div className="glass-card rounded-lg p-6 sticky top-20">
               <h3 className="text-xl font-bold mb-6">Order Summary</h3>
               <div className="space-y-4 mb-6">
                 {cart.products.map((item) => (

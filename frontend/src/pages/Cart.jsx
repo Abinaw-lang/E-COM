@@ -23,7 +23,7 @@ const Cart = () => {
             <h2 className="text-2xl font-bold mb-4">Your cart is empty</h2>
             <button
               onClick={() => navigate('/products')}
-              className="bg-primary text-white px-8 py-3 rounded-lg hover:bg-opacity-90 transition"
+              className="bg-gradient-to-r from-primary to-accent text-slate-900 px-8 py-3 rounded-lg hover:shadow-neon transition font-bold"
             >
               Continue Shopping
             </button>
@@ -36,7 +36,7 @@ const Cart = () => {
   return (
     <MainLayout>
       <div className="max-w-7xl mx-auto px-4 py-12">
-        <h1 className="text-4xl font-bold mb-8">Shopping Cart</h1>
+        <h1 className="text-4xl font-bold mb-8">Cart</h1>
 
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Cart Items */}
@@ -45,7 +45,7 @@ const Cart = () => {
             animate={{ opacity: 1, x: 0 }}
             className="lg:col-span-2"
           >
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+            <div className="glass-card rounded-lg p-6">
               {cart.products.map((item) => (
                 <motion.div
                   key={item.productId._id}
@@ -65,20 +65,20 @@ const Cart = () => {
                     <div className="flex items-center gap-2 mt-2">
                       <button
                         onClick={() => updateCartItem(item.productId._id, Math.max(1, item.quantity - 1))}
-                        className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded"
+                        className="p-1 hover:bg-white/10 rounded"
                       >
                         <Minus size={16} />
                       </button>
                       <span className="px-3">{item.quantity}</span>
                       <button
                         onClick={() => updateCartItem(item.productId._id, item.quantity + 1)}
-                        className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded"
+                        className="p-1 hover:bg-white/10 rounded"
                       >
                         <Plus size={16} />
                       </button>
                       <button
                         onClick={() => removeFromCart(item.productId._id)}
-                        className="ml-auto p-2 text-red-500 hover:bg-red-100 dark:hover:bg-red-900 rounded transition"
+                        className="ml-auto p-2 text-red-400 hover:bg-red-500/10 rounded transition"
                       >
                         <Trash2 size={18} />
                       </button>
@@ -95,7 +95,7 @@ const Cart = () => {
             animate={{ opacity: 1, x: 0 }}
             className="lg:col-span-1"
           >
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 sticky top-20">
+            <div className="glass-card rounded-2xl p-6 sticky top-20 border border-primary/25">
               <h3 className="text-xl font-bold mb-6">Order Summary</h3>
               <div className="space-y-4 mb-6">
                 <div className="flex justify-between">
@@ -104,16 +104,24 @@ const Cart = () => {
                 </div>
                 <div className="flex justify-between">
                   <span>Shipping</span>
-                  <span className="text-green-600">Free</span>
+                  <span className="text-green-400">Free</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Tax</span>
+                  <span>{formatPrice(cart.totalPrice * 0.05)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Estimated Delivery</span>
+                  <span className="text-slate-300">2-4 days</span>
                 </div>
                 <div className="border-t pt-4 flex justify-between text-lg font-bold">
                   <span>Total</span>
-                  <span className="text-primary">{formatPrice(cart.totalPrice)}</span>
+                  <span className="text-primary">{formatPrice(cart.totalPrice * 1.05)}</span>
                 </div>
               </div>
               <button
                 onClick={() => navigate('/checkout')}
-                className="w-full bg-primary text-white py-3 rounded-lg hover:bg-opacity-90 transition font-semibold"
+                className="w-full bg-gradient-to-r from-primary to-accent text-slate-900 py-3 rounded-lg hover:shadow-neon transition font-bold"
               >
                 Proceed to Checkout
               </button>
