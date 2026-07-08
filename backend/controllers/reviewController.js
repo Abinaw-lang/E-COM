@@ -3,6 +3,10 @@ import Product from '../models/Product.js';
 import Order from '../models/Order.js';
 import ErrorHandler from '../utils/errorHandler.js';
 import asyncHandler from '../utils/asyncHandler.js';
+import reviewDao from '../daos/reviewDao.js';
+import productDao from '../daos/productDao.js';
+import orderDao from '../daos/orderDao.js';
+import { firestore, admin } from '../config/firebase.js';
 
 // @desc    Add review
 // @route   POST /api/reviews
@@ -16,51 +20,49 @@ const addReview = asyncHandler(async (req, res, next) => {
   }
 
   // Check if user has purchased this product
-  const order = await Order.findOne({
-    userId: req.user.id,
-    'products.productId': productId,
-    paymentStatus: 'completed'
-  });
+  let order;
+  if (process.env.USE_FIREBASE === 'true') {
+    const orders = await orderDao.getByUser(req.user.id);
+    order = orders.find((o) => o.products.some((p) => p.productId === productId) && o.paymentStatus === 'completed');
+  } else {
+    order = await Order.findOne({ userId: req.user.id, 'products.productId': productId, paymentStatus: 'completed' });
+  }
 
   if (!order) {
     return next(new ErrorHandler('You can only review products you have purchased', 403));
   }
 
   // Check if user already reviewed
-  const existingReview = await Review.findOne({
-    userId: req.user.id,
-    productId
-  });
+  if (process.env.USE_FIREBASE === 'true') {
+    const existingReview = await reviewDao.findByUserAndProduct(req.user.id, productId);
+    if (existingReview) {
+      const updated = await reviewDao.update(existingReview.id, { rating, comment });
+      // recalc rating
+      const reviews = await reviewDao.findByProduct(productId);
+      const avgRating = reviews.reduce((s, r) => s + r.rating, 0) / reviews.length;
+      await firestore.collection('products').doc(productId).update({ rating: avgRating });
+      return res.status(200).json({ success: true, message: 'Review updated successfully', data: updated });
+    }
 
+    const created = await reviewDao.create({ userId: req.user.id, productId, rating, comment, verifiedPurchase: true });
+    const reviews = await reviewDao.findByProduct(productId);
+    const avgRating = reviews.reduce((s, r) => s + r.rating, 0) / reviews.length;
+    await firestore.collection('products').doc(productId).update({ rating: avgRating });
+    return res.status(201).json({ success: true, message: 'Review added successfully', data: created });
+  }
+
+  const existingReview = await Review.findOne({ userId: req.user.id, productId });
   if (existingReview) {
-    // Update existing review
     existingReview.rating = rating;
     existingReview.comment = comment;
     await existingReview.save();
-
-    res.status(200).json({
-      success: true,
-      message: 'Review updated successfully',
-      data: existingReview
-    });
+    res.status(200).json({ success: true, message: 'Review updated successfully', data: existingReview });
   } else {
-    // Create new review
-    const review = await Review.create({
-      userId: req.user.id,
-      productId,
-      rating,
-      comment,
-      verifiedPurchase: true
-    });
-
-    res.status(201).json({
-      success: true,
-      message: 'Review added successfully',
-      data: review
-    });
+    const review = await Review.create({ userId: req.user.id, productId, rating, comment, verifiedPurchase: true });
+    res.status(201).json({ success: true, message: 'Review added successfully', data: review });
   }
 
-  // Recalculate product rating
+  // Recalculate rating for MongoDB
   const reviews = await Review.find({ productId });
   const avgRating = reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length;
   await Product.findByIdAndUpdate(productId, { rating: avgRating });

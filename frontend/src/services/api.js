@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { auth } from '../firebase';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
@@ -9,10 +10,22 @@ const api = axios.create({
   }
 });
 
-// Add token to requests
+// Add token to requests (prefer Firebase ID token when available)
 api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
+  async (config) => {
+    try {
+      if (auth && auth.currentUser) {
+        const idToken = await auth.currentUser.getIdToken();
+        if (idToken) {
+          config.headers.Authorization = `Bearer ${idToken}`;
+          return config;
+        }
+      }
+    } catch (err) {
+      // fall back to local token
+    }
+
+    const token = localStorage.getItem('token') || localStorage.getItem('firebaseToken');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }

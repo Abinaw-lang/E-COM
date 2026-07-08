@@ -5,11 +5,17 @@ import { generateToken, generateRefreshToken } from '../utils/tokenUtils.js';
 import { sendWelcomeEmail, sendPasswordResetEmail } from '../services/emailService.js';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
+import userDao from '../daos/userDao.js';
+import { admin } from '../config/firebase.js';
 
 // @desc    Register user
 // @route   POST /api/auth/register
 // @access  Public
 const register = asyncHandler(async (req, res, next) => {
+  if (process.env.USE_FIREBASE === 'true') {
+    return next(new ErrorHandler('Registration is handled by Firebase Auth on the client. Create users via Firebase SDK and send ID token to login.', 400));
+  }
+
   const { name, email, password, phone } = req.body;
 
   // Check if user already exists
@@ -19,12 +25,7 @@ const register = asyncHandler(async (req, res, next) => {
   }
 
   // Create user
-  user = await User.create({
-    name,
-    email,
-    password,
-    phone
-  });
+  user = await User.create({ name, email, password, phone });
 
   // Send welcome email
   await sendWelcomeEmail(email, name);
@@ -44,21 +45,17 @@ const register = asyncHandler(async (req, res, next) => {
   // Remove password from output
   user.password = undefined;
 
-  res.status(201).json({
-    success: true,
-    message: 'User registered successfully',
-    data: {
-      user,
-      token,
-      refreshToken
-    }
-  });
+  res.status(201).json({ success: true, message: 'User registered successfully', data: { user, token, refreshToken } });
 });
 
 // @desc    Login user
 // @route   POST /api/auth/login
 // @access  Public
 const login = asyncHandler(async (req, res, next) => {
+  if (process.env.USE_FIREBASE === 'true') {
+    return next(new ErrorHandler('Login is handled by Firebase Auth on the client. Obtain an ID token and send it in Authorization header.', 400));
+  }
+
   const { email, password } = req.body;
 
   // Validate email & password
@@ -93,21 +90,17 @@ const login = asyncHandler(async (req, res, next) => {
   // Remove password from output
   user.password = undefined;
 
-  res.status(200).json({
-    success: true,
-    message: 'Logged in successfully',
-    data: {
-      user,
-      token,
-      refreshToken
-    }
-  });
+  res.status(200).json({ success: true, message: 'Logged in successfully', data: { user, token, refreshToken } });
 });
 
 // @desc    Refresh token
 // @route   POST /api/auth/refresh-token
 // @access  Public
 const refreshTokenEndpoint = asyncHandler(async (req, res, next) => {
+  if (process.env.USE_FIREBASE === 'true') {
+    return next(new ErrorHandler('Refresh tokens are managed by Firebase SDK on the client. Backend refresh endpoint is not applicable.', 400));
+  }
+
   const { refreshToken } = req.body;
 
   if (!refreshToken) {
@@ -124,10 +117,7 @@ const refreshTokenEndpoint = asyncHandler(async (req, res, next) => {
 
     const newToken = generateToken(user._id);
 
-    res.status(200).json({
-      success: true,
-      token: newToken
-    });
+    res.status(200).json({ success: true, token: newToken });
   } catch (error) {
     return next(new ErrorHandler('Invalid refresh token', 401));
   }
@@ -149,6 +139,10 @@ const logout = asyncHandler(async (req, res, next) => {
 // @route   POST /api/auth/forgot-password
 // @access  Public
 const forgotPassword = asyncHandler(async (req, res, next) => {
+  if (process.env.USE_FIREBASE === 'true') {
+    return next(new ErrorHandler('Password resets are handled by Firebase Auth. Use Firebase password reset flows.', 400));
+  }
+
   const { email } = req.body;
 
   const user = await User.findOne({ email });
@@ -163,10 +157,7 @@ const forgotPassword = asyncHandler(async (req, res, next) => {
   // Send reset password email
   await sendPasswordResetEmail(email, resetToken, user.name);
 
-  res.status(200).json({
-    success: true,
-    message: 'Password reset email sent successfully'
-  });
+  res.status(200).json({ success: true, message: 'Password reset email sent successfully' });
 });
 
 // @desc    Reset Password
@@ -175,17 +166,14 @@ const forgotPassword = asyncHandler(async (req, res, next) => {
 const resetPassword = asyncHandler(async (req, res, next) => {
   const { token } = req.params;
   const { password } = req.body;
+  if (process.env.USE_FIREBASE === 'true') {
+    return next(new ErrorHandler('Password resets are handled by Firebase Auth. Use Firebase reset flow.', 400));
+  }
 
   // Find user by reset token
-  const resetPasswordToken = require('crypto')
-    .createHash('sha256')
-    .update(token)
-    .digest('hex');
+  const resetPasswordToken = require('crypto').createHash('sha256').update(token).digest('hex');
 
-  const user = await User.findOne({
-    resetPasswordToken,
-    resetPasswordExpire: { $gt: Date.now() }
-  });
+  const user = await User.findOne({ resetPasswordToken, resetPasswordExpire: { $gt: Date.now() } });
 
   if (!user) {
     return next(new ErrorHandler('Invalid or expired reset token', 400));
@@ -199,23 +187,21 @@ const resetPassword = asyncHandler(async (req, res, next) => {
 
   const newToken = generateToken(user._id);
 
-  res.status(200).json({
-    success: true,
-    message: 'Password reset successfully',
-    token: newToken
-  });
+  res.status(200).json({ success: true, message: 'Password reset successfully', token: newToken });
 });
 
 // @desc    Get current logged in user
 // @route   GET /api/auth/me
 // @access  Private
 const getMe = asyncHandler(async (req, res, next) => {
+  if (process.env.USE_FIREBASE === 'true') {
+    const user = await userDao.getById(req.user.id);
+    return res.status(200).json({ success: true, data: user });
+  }
+
   const user = await User.findById(req.user.id);
 
-  res.status(200).json({
-    success: true,
-    data: user
-  });
+  res.status(200).json({ success: true, data: user });
 });
 
 export {

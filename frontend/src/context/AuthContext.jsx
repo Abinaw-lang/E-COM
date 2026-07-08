@@ -1,66 +1,82 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { authService } from '../services';
 import { toast } from 'react-toastify';
+import { auth } from '../firebase';
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut as fbSignOut,
+  onAuthStateChanged,
+  updateProfile,
+  getIdToken
+} from 'firebase/auth';
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [token, setToken] = useState(localStorage.getItem('token'));
+  const [token, setToken] = useState(localStorage.getItem('token') || localStorage.getItem('firebaseToken'));
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const initAuth = async () => {
-      if (token) {
-        try {
-          const response = await authService.getMe();
-          setUser(response.data.data);
-        } catch (error) {
-          localStorage.removeItem('token');
-          setToken(null);
-        }
+    const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
+      if (fbUser) {
+        const idToken = await getIdToken(fbUser, /* forceRefresh */ false);
+        localStorage.setItem('firebaseToken', idToken);
+        setToken(idToken);
+        setUser({
+          uid: fbUser.uid,
+          email: fbUser.email,
+          displayName: fbUser.displayName,
+          photoURL: fbUser.photoURL
+        });
+      } else {
+        localStorage.removeItem('firebaseToken');
+        setToken(null);
+        setUser(null);
       }
       setLoading(false);
-    };
+    });
 
-    initAuth();
-  }, [token]);
+    return () => unsubscribe();
+  }, []);
 
   const register = async (data) => {
     try {
-      const response = await authService.register(data);
-      localStorage.setItem('token', response.data.data.token);
-      localStorage.setItem('refreshToken', response.data.data.refreshToken);
-      setToken(response.data.data.token);
-      setUser(response.data.data.user);
+      const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
+      if (data.name) {
+        await updateProfile(userCredential.user, { displayName: data.name });
+      }
+      const idToken = await getIdToken(userCredential.user);
+      localStorage.setItem('firebaseToken', idToken);
+      setToken(idToken);
+      setUser({ uid: userCredential.user.uid, email: userCredential.user.email, displayName: userCredential.user.displayName });
       toast.success('Registration successful!');
-      return response.data;
+      return { user: userCredential.user, token: idToken };
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Registration failed');
+      toast.error(error.message || 'Registration failed');
       throw error;
     }
   };
 
   const login = async (data) => {
     try {
-      const response = await authService.login(data);
-      localStorage.setItem('token', response.data.data.token);
-      localStorage.setItem('refreshToken', response.data.data.refreshToken);
-      setToken(response.data.data.token);
-      setUser(response.data.data.user);
+      const userCredential = await signInWithEmailAndPassword(auth, data.email, data.password);
+      const idToken = await getIdToken(userCredential.user);
+      localStorage.setItem('firebaseToken', idToken);
+      setToken(idToken);
+      setUser({ uid: userCredential.user.uid, email: userCredential.user.email, displayName: userCredential.user.displayName });
       toast.success('Login successful!');
-      return response.data;
+      return { user: userCredential.user, token: idToken };
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Login failed');
+      toast.error(error.message || 'Login failed');
       throw error;
     }
   };
 
   const logout = async () => {
     try {
-      await authService.logout();
-      localStorage.removeItem('token');
-      localStorage.removeItem('refreshToken');
+      await fbSignOut(auth);
+      localStorage.removeItem('firebaseToken');
       setToken(null);
       setUser(null);
       toast.success('Logged out successfully!');

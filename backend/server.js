@@ -9,6 +9,7 @@ import errorHandler from './middleware/errorHandler.js';
 import authRoutes from './routes/authRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import productRoutes from './routes/productRoutes.js';
+import jerseyRoutes from './routes/jerseyRoutes.js';
 import cartRoutes from './routes/cartRoutes.js';
 import wishlistRoutes from './routes/wishlistRoutes.js';
 import orderRoutes from './routes/orderRoutes.js';
@@ -21,8 +22,19 @@ dotenv.config();
 // Initialize Express app
 const app = express();
 
-// Connect to database
-connectDB();
+// Connect to database (MongoDB) or initialize Firebase (Firestore)
+const useFirebase = process.env.USE_FIREBASE === 'true';
+if (useFirebase) {
+  try {
+    await import('./config/firebase.js');
+    console.log('Initialized Firebase Admin SDK (using Firestore)');
+  } catch (err) {
+    console.error('Failed to initialize Firebase:', err.message);
+    process.exit(1);
+  }
+} else {
+  connectDB();
+}
 
 // Middleware
 app.use(helmet());
@@ -37,6 +49,7 @@ app.use(express.urlencoded({ limit: '10mb', extended: true }));
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/products', productRoutes);
+app.use('/api/jerseys', jerseyRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/wishlist', wishlistRoutes);
 app.use('/api/orders', orderRoutes);

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import MainLayout from '../layouts/MainLayout';
 import ProductCard from '../components/ProductCard';
-import { productService } from '../services';
+import { productService, firestoreService } from '../services';
 import { Filter, Grid, List, Sparkles, X } from 'lucide-react';
 
 const Products = () => {
@@ -30,8 +30,14 @@ const Products = () => {
       try {
         setLoading(true);
         setFetchError('');
-        const res = await productService.getAllProducts({ ...filters, page: 1, limit: 100 });
-        setProducts(res?.data?.data || []);
+        if (firestoreService.getAllProducts) {
+          const docs = await firestoreService.getAllProducts();
+          // docs are array of products
+          setProducts(docs || []);
+        } else {
+          const res = await productService.getAllProducts({ ...filters, page: 1, limit: 100 });
+          setProducts(res?.data?.data || []);
+        }
       } catch (error) {
         setProducts([]);
         setFetchError('Unable to load products right now. Please try again.');

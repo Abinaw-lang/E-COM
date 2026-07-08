@@ -7,6 +7,10 @@ import ErrorHandler from '../utils/errorHandler.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import { sendOrderConfirmationEmail, sendOrderStatusEmail } from '../services/emailService.js';
 import crypto from 'crypto';
+import productDao from '../daos/productDao.js';
+import orderDao from '../daos/orderDao.js';
+import userDao from '../daos/userDao.js';
+import { firestore, admin } from '../config/firebase.js';
 
 let razorpay;
 try {
@@ -27,6 +31,67 @@ const createOrder = asyncHandler(async (req, res, next) => {
 
   if (!products || products.length === 0) {
     return next(new ErrorHandler('No products in order', 400));
+  }
+
+  if (process.env.USE_FIREBASE === 'true') {
+    if (!products || products.length === 0) return next(new ErrorHandler('No products in order', 400));
+
+    let totalAmount = 0;
+    const orderProducts = [];
+
+    for (const item of products) {
+      const product = await productDao.getById(item.productId);
+      if (!product) return next(new ErrorHandler(`Product ${item.productId} not found`, 404));
+      if ((product.stock || 0) < item.quantity) return next(new ErrorHandler(`Product ${product.title} is out of stock`, 400));
+      const price = product.discountPrice || product.price || 0;
+      totalAmount += price * item.quantity;
+      orderProducts.push({ productId: item.productId, title: product.title, price, quantity: item.quantity, image: product.images?.[0]?.url || '' });
+    }
+
+    let discount = 0;
+    // TODO: coupon validation
+
+    const orderDoc = {
+      userId: req.user.id,
+      products: orderProducts,
+      shippingAddress,
+      billingAddress: billingAddress || shippingAddress,
+      totalAmount: totalAmount - discount,
+      discount,
+      couponCode,
+      paymentStatus: 'pending',
+      orderStatus: 'pending'
+    };
+
+    const created = await orderDao.create(orderDoc);
+
+    // decrement stock and clear cart
+    for (const item of products) {
+      const prodRef = firestore.collection('products').doc(item.productId);
+      await prodRef.update({ stock: admin.firestore.FieldValue.increment(-item.quantity) });
+    }
+
+    // clear cart items for user
+    const cartSnap = await firestore.collection('carts').where('uid', '==', req.user.id).get();
+    const deletes = cartSnap.docs.map((d) => firestore.collection('carts').doc(d.id).delete());
+    await Promise.all(deletes);
+
+    // Get user email
+    let user = await userDao.getById(req.user.id);
+    const email = user?.email || req.user.email;
+    const name = user?.name || req.user.name || '';
+
+    const orderDetails = {
+      orderId: created.id,
+      totalAmount: created.totalAmount,
+      paymentStatus: created.paymentStatus,
+      products: created.products.map((p) => ({ name: p.title, quantity: p.quantity, price: p.price })),
+      shippingAddress: created.shippingAddress
+    };
+
+    if (email) await sendOrderConfirmationEmail(email, name, orderDetails);
+
+    return res.status(201).json({ success: true, message: 'Order created successfully', data: created });
   }
 
   let totalAmount = 0;
@@ -61,23 +126,9 @@ const createOrder = asyncHandler(async (req, res, next) => {
     // TODO: Implement coupon validation
   }
 
-  const order = await Order.create({
-    userId: req.user.id,
-    products: orderProducts,
-    shippingAddress,
-    billingAddress: billingAddress || shippingAddress,
-    totalAmount: totalAmount - discount,
-    discount,
-    couponCode,
-    paymentStatus: 'pending',
-    orderStatus: 'pending'
-  });
+  const order = await Order.create({ userId: req.user.id, products: orderProducts, shippingAddress, billingAddress: billingAddress || shippingAddress, totalAmount: totalAmount - discount, discount, couponCode, paymentStatus: 'pending', orderStatus: 'pending' });
 
-  res.status(201).json({
-    success: true,
-    message: 'Order created successfully',
-    data: order
-  });
+  res.status(201).json({ success: true, message: 'Order created successfully', data: order });
 });
 
 // @desc    Create Razorpay order
@@ -119,6 +170,36 @@ const verifyPayment = asyncHandler(async (req, res, next) => {
 
   if (expectedSignature === razorpay_signature) {
     // Payment verified
+    if (process.env.USE_FIREBASE === 'true') {
+      const order = await orderDao.update(req.body.orderId, { paymentStatus: 'completed', paymentId: razorpay_payment_id, orderId: razorpay_order_id, orderStatus: 'confirmed' });
+
+      // Update stock in Firestore
+      for (const item of order.products) {
+        await firestore.collection('products').doc(item.productId).update({ stock: admin.firestore.FieldValue.increment(-item.quantity) });
+      }
+
+      // Clear cart docs
+      const cartSnap = await firestore.collection('carts').where('uid', '==', req.user.id).get();
+      const deletes = cartSnap.docs.map((d) => firestore.collection('carts').doc(d.id).delete());
+      await Promise.all(deletes);
+
+      const user = await userDao.getById(req.user.id);
+      const email = user?.email || req.user.email;
+      const name = user?.name || req.user.name || '';
+
+      const orderDetails = {
+        orderId: order.id,
+        totalAmount: order.totalAmount,
+        paymentStatus: order.paymentStatus,
+        products: order.products.map((p) => ({ name: p.title, quantity: p.quantity, price: p.price })),
+        shippingAddress: order.shippingAddress
+      };
+
+      if (email) await sendOrderConfirmationEmail(email, name, orderDetails);
+
+      return res.status(200).json({ success: true, message: 'Payment verified successfully', data: order });
+    }
+
     const order = await Order.findOneAndUpdate(
       { _id: req.body.orderId },
       {
@@ -132,17 +213,11 @@ const verifyPayment = asyncHandler(async (req, res, next) => {
 
     // Update product stock
     for (const item of order.products) {
-      await Product.findByIdAndUpdate(
-        item.productId,
-        { $inc: { stock: -item.quantity } }
-      );
+      await Product.findByIdAndUpdate(item.productId, { $inc: { stock: -item.quantity } });
     }
 
     // Clear cart
-    await Cart.findOneAndUpdate(
-      { userId: req.user.id },
-      { products: [], totalPrice: 0 }
-    );
+    await Cart.findOneAndUpdate({ userId: req.user.id }, { products: [], totalPrice: 0 });
 
     // Get user for email
     const user = await User.findById(req.user.id);
@@ -152,20 +227,12 @@ const verifyPayment = asyncHandler(async (req, res, next) => {
       orderId: order._id,
       totalAmount: order.totalAmount,
       paymentStatus: order.paymentStatus,
-      products: order.products.map(p => ({
-        name: p.title,
-        quantity: p.quantity,
-        price: p.price
-      })),
+      products: order.products.map((p) => ({ name: p.title, quantity: p.quantity, price: p.price })),
       shippingAddress: order.shippingAddress
     };
     await sendOrderConfirmationEmail(user.email, user.name, orderDetails);
 
-    res.status(200).json({
-      success: true,
-      message: 'Payment verified successfully',
-      data: order
-    });
+    res.status(200).json({ success: true, message: 'Payment verified successfully', data: order });
   } else {
     await Order.findByIdAndUpdate(req.body.orderId, { paymentStatus: 'failed' });
     return next(new ErrorHandler('Payment verification failed', 400));

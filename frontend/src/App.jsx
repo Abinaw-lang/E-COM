@@ -15,6 +15,7 @@ import AdminRoute from './routes/AdminRoute';
 const Home = React.lazy(() => import('./pages/Home'));
 const Products = React.lazy(() => import('./pages/Products'));
 const ProductDetail = React.lazy(() => import('./pages/ProductDetail'));
+const Jerseys = React.lazy(() => import('./pages/Jerseys'));
 const Cart = React.lazy(() => import('./pages/Cart'));
 const Wishlist = React.lazy(() => import('./pages/Wishlist'));
 const Checkout = React.lazy(() => import('./pages/Checkout'));
@@ -72,6 +73,7 @@ function App() {
                 <Route path="/" element={<Home />} />
                 <Route path="/products" element={<Products />} />
                 <Route path="/products/:id" element={<ProductDetail />} />
+                <Route path="/jerseys" element={<Jerseys />} />
                 <Route path="/collections" element={<Collections />} />
                 <Route path="/custom-jersey" element={<CustomJersey />} />
                 <Route path="/about" element={<About />} />

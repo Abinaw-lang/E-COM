@@ -33,6 +33,17 @@ export const productService = {
   getCategories: () => api.get('/products/categories')
 };
 
+// Jersey Services
+export const jerseyService = {
+  getAllJerseys: (params) => api.get('/jerseys', { params }),
+  getJerseyById: (id) => api.get(`/jerseys/${id}`),
+  createJersey: (data) => api.post('/jerseys', data),
+  updateJersey: (id, data) => api.put(`/jerseys/${id}`, data),
+  deleteJersey: (id) => api.delete(`/jerseys/${id}`),
+  getFeaturedJerseys: () => api.get('/jerseys/featured'),
+  getCategories: () => api.get('/jerseys/categories')
+};
+
 // Cart Services
 export const cartService = {
   getCart: () => api.get('/cart'),
@@ -66,3 +77,6 @@ export const reviewService = {
   addReview: (data) => api.post('/reviews', data),
   deleteReview: (id) => api.delete(`/reviews/${id}`)
 };
+
+// Firestore helper (client-side)
+export * as firestoreService from './firestore';
