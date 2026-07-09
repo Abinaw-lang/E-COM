@@ -2,7 +2,7 @@ import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import ErrorHandler from '../utils/errorHandler.js';
 import asyncHandler from '../utils/asyncHandler.js';
-import { admin } from '../config/firebase.js';
+import { admin, firestore } from '../config/firebase.js';
 
 // Protect Routes - Check if user is authenticated
 const protect = asyncHandler(async (req, res, next) => {
@@ -32,8 +32,9 @@ const protect = asyncHandler(async (req, res, next) => {
       if (admin && process.env.USE_FIREBASE === 'true') {
         try {
           const decoded = await admin.auth().verifyIdToken(token);
-          // Attach a minimal user object for downstream controllers
-          req.user = { id: decoded.uid, email: decoded.email, firebase: true };
+          const userDoc = await firestore.collection('users').doc(decoded.uid).get();
+          const role = userDoc.exists ? userDoc.data().role : 'user';
+          req.user = { id: decoded.uid, email: decoded.email, role, firebase: true };
           return next();
         } catch (fbErr) {
           return next(new ErrorHandler('Not authorized to access this route', 401));

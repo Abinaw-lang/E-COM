@@ -1,27 +1,24 @@
-// Import the functions you need from the SDKs you need
 import { initializeApp } from 'firebase/app';
 import { getAnalytics } from 'firebase/analytics';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
-// Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyCZgJKWFpHRKtTI-Tpd1PhMcjk0jMrfJbM",
-  authDomain: "smart-elearning-app.firebaseapp.com",
-  projectId: "smart-elearning-app",
-  storageBucket: "smart-elearning-app.firebasestorage.app",
-  messagingSenderId: "933978487933",
-  appId: "1:933978487933:web:ab70a102f36d1653d4c514",
-  measurementId: "G-PLKCZMJ1DX"
+  apiKey: "AIzaSyCZm-DssvpgK1zR2ObLnviznCO0AZT6Fvo",
+  authDomain: "jersey-32711.firebaseapp.com",
+  projectId: "jersey-32711",
+  storageBucket: "jersey-32711.firebasestorage.app",
+  messagingSenderId: "878180807104",
+  appId: "1:878180807104:web:d1806902527c6d37c75825",
+  measurementId: "G-1T9KX3BDGW"
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
+
 let analytics;
 try {
   analytics = getAnalytics(app);
 } catch (err) {
-  // Analytics may fail in non-browser environments (SSR)
   analytics = null;
 }
 
