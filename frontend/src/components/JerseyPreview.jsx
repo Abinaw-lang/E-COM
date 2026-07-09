@@ -36,16 +36,25 @@ const patternDefs = {
 };
 
 const collarPaths = {
-  'Round Neck': 'M120 92 Q144 60 176 92',
-  'V Neck': 'M120 92 L150 120 L180 92',
-  Polo: 'M120 92 Q150 65 180 92 L180 100 Q150 110 120 100 Z',
-  'Crew Neck': 'M120 92 Q150 75 180 92 Q150 85 120 92 Z'
+  'Round Neck': 'M120 100 Q180 55 240 100',
+  'V Neck': 'M120 100 L180 55 L240 100',
+  Polo: 'M120 100 C180 35 240 100 L240 108 C180 90 120 108 120 100 Z',
+  'Crew Neck': 'M120 100 Q180 70 240 100 Q180 85 120 100 Z'
 };
 
 const sleevePaths = {
-  'Half Sleeve': 'M52 112 Q20 130 54 168 L90 150',
-  'Full Sleeve': 'M52 112 Q8 144 52 196 L90 178',
-  Sleeveless: 'M52 112 L90 118'
+  'Half Sleeve': {
+    left: 'M70 100 C50 140 50 190 80 210 L105 190 C90 180 86 160 90 150 Z',
+    right: 'M290 100 C310 140 310 190 280 210 L255 190 C270 180 274 160 270 150 Z'
+  },
+  'Full Sleeve': {
+    left: 'M70 100 C40 150 40 240 80 270 L110 250 C95 230 92 205 96 190 Z',
+    right: 'M290 100 C320 150 320 240 280 270 L250 250 C265 230 268 205 264 190 Z'
+  },
+  Sleeveless: {
+    left: 'M90 100 L110 100 L110 120 L90 120 Z',
+    right: 'M250 100 L270 100 L270 120 L250 120 Z'
+  }
 };
 
 const JerseyPreview = React.forwardRef(({
@@ -98,24 +107,31 @@ const JerseyPreview = React.forwardRef(({
 
             <g filter="url(#shadow)" />
             <path
-              d="M100 92 Q110 30 180 30 Q250 30 260 92 L260 160 Q290 198 274 260 L210 370 Q175 410 180 500 L100 500 Q105 410 70 370 L6 260 Q-10 198 20 160 Z"
+              d="M80 100 C80 65 120 40 180 40 C240 40 280 65 280 100 L280 150 C300 190 300 250 280 290 L260 320 C260 400 230 500 180 500 C130 500 100 400 100 320 L80 290 C60 250 60 190 80 150 Z"
               fill={colors.primary}
               stroke="rgba(255,255,255,0.14)"
-              strokeWidth="1.5"
+              strokeWidth="2"
             />
             <path
-              d="M100 92 Q110 30 180 30 Q250 30 260 92 L260 160 Q290 198 274 260 L210 370 Q175 410 180 500 L100 500 Q105 410 70 370 L6 260 Q-10 198 20 160 Z"
+              d="M80 100 C80 65 120 40 180 40 C240 40 280 65 280 100 L280 150 C300 190 300 250 280 290 L260 320 C260 400 230 500 180 500 C130 500 100 400 100 320 L80 290 C60 250 60 190 80 150 Z"
               fill={pattern !== 'Plain' ? `url(#${fillId})` : 'none'}
+              opacity={pattern === 'Plain' ? 0 : 0.35}
             />
-            <path d="M100 92 Q132 70 180 70 Q228 70 260 92" fill="none" stroke="rgba(255,255,255,0.14)" strokeWidth="6" opacity="0.5" />
-            <path d="M60 110 Q20 130 60 170 L90 150" fill={colors.secondary} opacity="0.94" />
-            <path d="M300 110 Q340 130 300 170 L270 150" fill={colors.secondary} opacity="0.94" />
-            <path d="M108 114 Q150 44 212 114" fill="none" stroke={colors.collar} strokeWidth="20" strokeLinecap="round" />
+            <path d="M80 100 C120 80 160 70 180 70 C200 70 240 80 280 100" fill="none" stroke="rgba(255,255,255,0.14)" strokeWidth="6" opacity="0.5" />
+            <path
+              d={sleevePaths[sleeveStyle]?.left || sleevePaths['Half Sleeve'].left}
+              fill={colors.sleeve}
+              opacity="0.96"
+            />
+            <path
+              d={sleevePaths[sleeveStyle]?.right || sleevePaths['Half Sleeve'].right}
+              fill={colors.sleeve}
+              opacity="0.96"
+            />
             <path d={collarPaths[collarStyle] || collarPaths['Round Neck']} fill="none" stroke={colors.collar} strokeWidth="18" strokeLinecap="round" />
-            <path d={sleevePaths[sleeveStyle] || sleevePaths['Half Sleeve']} fill="none" stroke={colors.sleeve} strokeWidth="30" strokeLinecap="round" />
-            <circle cx="185" cy="122" r="4" fill="rgba(255,255,255,0.6)" />
-            <path d="M50 210 Q70 190 95 200" fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="15" />
-            <path d="M265 210 Q245 190 220 200" fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="15" />
+            <circle cx="180" cy="120" r="4" fill="rgba(255,255,255,0.6)" />
+            <path d="M100 210 C130 195 160 195 190 210" fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="12" strokeLinecap="round" />
+            <path d="M170 210 C200 195 230 195 260 210" fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="12" strokeLinecap="round" />
 
             {showFront ? (
               <>
