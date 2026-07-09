@@ -12,18 +12,27 @@ import {
 import { getDoc, setDoc, doc } from 'firebase/firestore';
 
 const AuthContext = createContext();
+const configuredAdminEmail = (import.meta.env.VITE_ADMIN_EMAIL || import.meta.env.ADMIN_EMAIL || 'abinaw227@gmail.com').toLowerCase();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(localStorage.getItem('token') || localStorage.getItem('firebaseToken'));
   const [loading, setLoading] = useState(true);
 
-  const fetchUserRole = async (uid) => {
+  const fetchUserRole = async (uid, email) => {
     try {
+      if (email && email.toLowerCase() === configuredAdminEmail) {
+        return 'admin';
+      }
+
       const userDoc = await getDoc(doc(db, 'users', uid));
-      return userDoc.exists() ? userDoc.data().role || 'user' : 'user';
-    } catch (err) {
+      if (userDoc.exists()) {
+        const role = userDoc.data().role;
+        return role || 'user';
+      }
       return 'user';
+    } catch (err) {
+      return email && email.toLowerCase() === configuredAdminEmail ? 'admin' : 'user';
     }
   };
 
@@ -46,7 +55,7 @@ export const AuthProvider = ({ children }) => {
     const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
       if (fbUser) {
         const idToken = await getIdToken(fbUser, /* forceRefresh */ false);
-        const role = await fetchUserRole(fbUser.uid);
+        const role = await fetchUserRole(fbUser.uid, fbUser.email);
         localStorage.setItem('firebaseToken', idToken);
         setToken(idToken);
         setUser({
@@ -75,13 +84,14 @@ export const AuthProvider = ({ children }) => {
       }
       await createUserDocument(userCredential.user.uid, data);
       const idToken = await getIdToken(userCredential.user);
+      const role = await fetchUserRole(userCredential.user.uid, userCredential.user.email);
       localStorage.setItem('firebaseToken', idToken);
       setToken(idToken);
       setUser({
         uid: userCredential.user.uid,
         email: userCredential.user.email,
         displayName: userCredential.user.displayName,
-        role: 'user'
+        role
       });
       toast.success('Registration successful!');
       return { user: userCredential.user, token: idToken };
@@ -95,7 +105,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, data.email, data.password);
       const idToken = await getIdToken(userCredential.user);
-      const role = await fetchUserRole(userCredential.user.uid);
+      const role = await fetchUserRole(userCredential.user.uid, userCredential.user.email);
       localStorage.setItem('firebaseToken', idToken);
       setToken(idToken);
       setUser({

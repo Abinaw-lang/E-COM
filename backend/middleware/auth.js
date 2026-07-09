@@ -32,8 +32,12 @@ const protect = asyncHandler(async (req, res, next) => {
       if (admin && process.env.USE_FIREBASE === 'true') {
         try {
           const decoded = await admin.auth().verifyIdToken(token);
+          const configuredAdminEmail = (process.env.ADMIN_EMAIL || 'abinaw227@gmail.com').toLowerCase();
           const userDoc = await firestore.collection('users').doc(decoded.uid).get();
-          const role = userDoc.exists ? userDoc.data().role : 'user';
+          const firestoreRole = userDoc.exists ? userDoc.data().role : null;
+          const role = decoded.email && decoded.email.toLowerCase() === configuredAdminEmail
+            ? 'admin'
+            : firestoreRole || 'user';
           req.user = { id: decoded.uid, email: decoded.email, role, firebase: true };
           return next();
         } catch (fbErr) {
