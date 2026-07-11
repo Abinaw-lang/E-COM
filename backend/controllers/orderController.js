@@ -243,6 +243,11 @@ const verifyPayment = asyncHandler(async (req, res, next) => {
 // @route   GET /api/orders
 // @access  Private
 const getUserOrders = asyncHandler(async (req, res, next) => {
+  if (process.env.USE_FIREBASE === 'true') {
+    const orders = await orderDao.getByUser(req.user.id);
+    return res.status(200).json({ success: true, data: orders });
+  }
+
   const orders = await Order.find({ userId: req.user.id }).sort({ createdAt: -1 });
 
   res.status(200).json({
@@ -255,6 +260,15 @@ const getUserOrders = asyncHandler(async (req, res, next) => {
 // @route   GET /api/orders/:id
 // @access  Private
 const getOrderById = asyncHandler(async (req, res, next) => {
+  if (process.env.USE_FIREBASE === 'true') {
+    const order = await orderDao.getById(req.params.id);
+    if (!order) return next(new ErrorHandler('Order not found', 404));
+    if (order.userId !== req.user.id && req.user.role !== 'admin') {
+      return next(new ErrorHandler('Not authorized to access this order', 403));
+    }
+    return res.status(200).json({ success: true, data: order });
+  }
+
   const order = await Order.findById(req.params.id);
 
   if (!order) {
@@ -277,6 +291,32 @@ const getOrderById = asyncHandler(async (req, res, next) => {
 // @access  Private/Admin
 const updateOrderStatus = asyncHandler(async (req, res, next) => {
   const { orderStatus, trackingNumber } = req.body;
+
+  if (process.env.USE_FIREBASE === 'true') {
+    const existing = await orderDao.getById(req.params.id);
+    if (!existing) return next(new ErrorHandler('Order not found', 404));
+
+    const order = await orderDao.update(req.params.id, { orderStatus, trackingNumber });
+
+    // Send status update email if email available
+    let email = req.user.email;
+    let name = req.user.name || '';
+    try {
+      const uDoc = await firestore.collection('users').doc(order.userId).get();
+      if (uDoc.exists) {
+        email = uDoc.data().email || email;
+        name = uDoc.data().name || name;
+      }
+    } catch (e) {
+      console.warn('Failed to fetch user email for status notification:', e.message);
+    }
+
+    if (email && ['shipped', 'delivered', 'cancelled'].includes(orderStatus)) {
+      await sendOrderStatusEmail(email, name, order.id, orderStatus);
+    }
+
+    return res.status(200).json({ success: true, message: 'Order updated successfully', data: order });
+  }
 
   const order = await Order.findByIdAndUpdate(
     req.params.id,
@@ -305,6 +345,11 @@ const updateOrderStatus = asyncHandler(async (req, res, next) => {
 // @route   GET /api/orders/admin/all
 // @access  Private/Admin
 const getAllOrders = asyncHandler(async (req, res, next) => {
+  if (process.env.USE_FIREBASE === 'true') {
+    const orders = await orderDao.listAll();
+    return res.status(200).json({ success: true, count: orders.length, data: orders });
+  }
+
   const orders = await Order.find().sort({ createdAt: -1 });
 
   res.status(200).json({

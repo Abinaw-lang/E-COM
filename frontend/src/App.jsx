@@ -25,6 +25,13 @@ const UserProfile = React.lazy(() => import('./pages/UserProfile'));
 const OrderDetail = React.lazy(() => import('./pages/OrderDetail'));
 const AdminDashboard = React.lazy(() => import('./pages/AdminDashboard'));
 const AdminProducts = React.lazy(() => import('./pages/AdminProducts'));
+const AdminCategories = React.lazy(() => import('./pages/AdminCategories'));
+const AdminOrders = React.lazy(() => import('./pages/AdminOrders'));
+const AdminCustomers = React.lazy(() => import('./pages/AdminCustomers'));
+const AdminReviews = React.lazy(() => import('./pages/AdminReviews'));
+const AdminCoupons = React.lazy(() => import('./pages/AdminCoupons'));
+const AdminNotifications = React.lazy(() => import('./pages/AdminNotifications'));
+const AdminSettings = React.lazy(() => import('./pages/AdminSettings'));
 const NotFound = React.lazy(() => import('./pages/NotFound'));
 const Collections = React.lazy(() => import('./pages/Collections'));
 const CustomJersey = React.lazy(() => import('./pages/CustomJersey'));
@@ -137,6 +144,62 @@ function App() {
                   element={
                     <AdminRoute>
                       <AdminProducts />
+                    </AdminRoute>
+                  }
+                />
+                <Route
+                  path="/admin/categories"
+                  element={
+                    <AdminRoute>
+                      <AdminCategories />
+                    </AdminRoute>
+                  }
+                />
+                <Route
+                  path="/admin/orders"
+                  element={
+                    <AdminRoute>
+                      <AdminOrders />
+                    </AdminRoute>
+                  }
+                />
+                <Route
+                  path="/admin/customers"
+                  element={
+                    <AdminRoute>
+                      <AdminCustomers />
+                    </AdminRoute>
+                  }
+                />
+                <Route
+                  path="/admin/reviews"
+                  element={
+                    <AdminRoute>
+                      <AdminReviews />
+                    </AdminRoute>
+                  }
+                />
+                <Route
+                  path="/admin/coupons"
+                  element={
+                    <AdminRoute>
+                      <AdminCoupons />
+                    </AdminRoute>
+                  }
+                />
+                <Route
+                  path="/admin/notifications"
+                  element={
+                    <AdminRoute>
+                      <AdminNotifications />
+                    </AdminRoute>
+                  }
+                />
+                <Route
+                  path="/admin/settings"
+                  element={
+                    <AdminRoute>
+                      <AdminSettings />
                     </AdminRoute>
                   }
                 />

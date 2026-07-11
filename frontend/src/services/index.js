@@ -19,7 +19,8 @@ export const userService = {
   addAddress: (data) => api.post('/users/addresses', data),
   updateAddress: (id, data) => api.put(`/users/addresses/${id}`, data),
   deleteAddress: (id) => api.delete(`/users/addresses/${id}`),
-  getAllUsers: () => api.get('/users')
+  getAllUsers: () => api.get('/users'),
+  toggleUserActive: (id) => api.patch(`/users/${id}/toggle-active`)
 };
 
 // Product Services
@@ -76,6 +77,31 @@ export const reviewService = {
   getProductReviews: (productId) => api.get(`/reviews/${productId}`),
   addReview: (data) => api.post('/reviews', data),
   deleteReview: (id) => api.delete(`/reviews/${id}`)
+};
+
+// Coupon Services
+export const couponService = {
+  getAllCoupons: () => api.get('/coupons'),
+  createCoupon: (data) => api.post('/coupons', data),
+  updateCoupon: (id, data) => api.put(`/coupons/${id}`, data),
+  deleteCoupon: (id) => api.delete(`/coupons/${id}`)
+};
+
+// Admin Services
+export const adminService = {
+  getStats: () => api.get('/admin/stats'),
+  getCategories: () => api.get('/admin/categories'),
+  createCategory: (data) => api.post('/admin/categories', data),
+  updateCategory: (id, data) => api.put(`/admin/categories/${id}`, data),
+  deleteCategory: (id) => api.delete(`/admin/categories/${id}`),
+  getSettings: () => api.get('/admin/settings'),
+  saveSettings: (data) => api.post('/admin/settings', data),
+  sendNotification: (data) => api.post('/admin/notifications', data),
+  getNotifications: () => api.get('/admin/notifications'),
+  getAllReviews: () => api.get('/admin/reviews'),
+  toggleHideReview: (id) => api.patch(`/admin/reviews/${id}/toggle-hide`),
+  deleteReview: (id) => api.delete(`/admin/reviews/${id}`),
+  bulkDeleteProducts: (ids) => api.post('/admin/products/bulk-delete', { ids })
 };
 
 // Firestore helper (client-side)

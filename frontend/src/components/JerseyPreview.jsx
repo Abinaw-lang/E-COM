@@ -35,26 +35,35 @@ const patternDefs = {
   )
 };
 
-const collarPaths = {
-  'Round Neck': 'M120 100 Q180 55 240 100',
-  'V Neck': 'M120 100 L180 55 L240 100',
-  Polo: 'M120 100 C180 35 240 100 L240 108 C180 90 120 108 120 100 Z',
-  'Crew Neck': 'M120 100 Q180 70 240 100 Q180 85 120 100 Z'
+// T-shirt body silhouettes — sleeves are part of the single outline (boxier, not fitted like a jersey)
+const bodyPaths = {
+  'Half Sleeve':
+    'M150,42 C165,55 195,55 210,42 L255,55 L310,75 C315,95 300,120 285,135 L262,120 L262,470 L98,470 L98,120 L75,135 C60,120 45,95 50,75 L105,55 Z',
+  'Full Sleeve':
+    'M150,42 C165,55 195,55 210,42 L255,55 L300,90 L300,215 L262,205 L262,470 L98,470 L98,205 L60,215 L60,90 L105,55 Z',
+  Sleeveless:
+    'M150,42 C165,55 195,55 210,42 L230,55 L262,110 L262,470 L98,470 L98,110 L130,55 Z'
 };
 
-const sleevePaths = {
+// Small color-blocked cuffs at the sleeve ends (tank has none)
+const cuffPaths = {
   'Half Sleeve': {
-    left: 'M70 100 C50 140 50 190 80 210 L105 190 C90 180 86 160 90 150 Z',
-    right: 'M290 100 C310 140 310 190 280 210 L255 190 C270 180 274 160 270 150 Z'
+    left: 'M98,120 L75,135 L63,145 L90,133 Z',
+    right: 'M262,120 L285,135 L297,145 L270,133 Z'
   },
   'Full Sleeve': {
-    left: 'M70 100 C40 150 40 240 80 270 L110 250 C95 230 92 205 96 190 Z',
-    right: 'M290 100 C320 150 320 240 280 270 L250 250 C265 230 268 205 264 190 Z'
+    left: 'M60,190 L98,190 L98,215 L60,215 Z',
+    right: 'M262,190 L300,190 L300,215 L262,215 Z'
   },
-  Sleeveless: {
-    left: 'M90 100 L110 100 L110 120 L90 120 Z',
-    right: 'M250 100 L270 100 L270 120 L250 120 Z'
-  }
+  Sleeveless: null
+};
+
+// Neckline treatments
+const collarPaths = {
+  'Round Neck': { d: 'M150,42 Q180,64 210,42', width: 10 },
+  'Crew Neck': { d: 'M150,42 Q180,58 210,42', width: 14 },
+  'V Neck': { d: 'M150,42 L180,90 L210,42', width: 9 },
+  Polo: { d: 'M150,42 Q180,60 210,42', width: 9, placket: true }
 };
 
 const JerseyPreview = React.forwardRef(({
@@ -71,12 +80,15 @@ const JerseyPreview = React.forwardRef(({
   patch,
   sponsor,
   zoom,
-  rotation,
-  logoPositions
+  rotation
 }, ref) => {
-  const fillId = `jersey-pattern-${pattern}`;
+  const fillId = `tshirt-pattern-${pattern}`;
   const patternElement = useMemo(() => (patternDefs[pattern] ? patternDefs[pattern](fillId) : null), [pattern, fillId]);
   const showFront = view === 'front';
+
+  const body = bodyPaths[sleeveStyle] || bodyPaths['Half Sleeve'];
+  const cuffs = cuffPaths[sleeveStyle];
+  const collar = collarPaths[collarStyle] || collarPaths['Round Neck'];
 
   return (
     <div className="relative mx-auto rounded-[2.5rem] bg-[#08101f]/70 p-5 shadow-[0_30px_90px_rgba(4,17,45,0.55)] overflow-hidden" ref={ref}>
@@ -91,13 +103,9 @@ const JerseyPreview = React.forwardRef(({
         >
           <svg viewBox="0 0 360 520" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
             <defs>
-              <linearGradient id="jerseyLight" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="rgba(255,255,255,0.18)" />
+              <linearGradient id="teeLight" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="rgba(255,255,255,0.16)" />
                 <stop offset="100%" stopColor="rgba(255,255,255,0)" />
-              </linearGradient>
-              <linearGradient id="jerseyShadow" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="rgba(0,0,0,0)" />
-                <stop offset="100%" stopColor="rgba(0,0,0,0.18)" />
               </linearGradient>
               <pattern id="fabricTexture" patternUnits="userSpaceOnUse" width="12" height="12">
                 <path d="M0 0 L12 0 M0 6 L12 6" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
@@ -105,52 +113,51 @@ const JerseyPreview = React.forwardRef(({
               {patternElement}
             </defs>
 
-            <g filter="url(#shadow)" />
-            <path
-              d="M80 100 C80 65 120 40 180 40 C240 40 280 65 280 100 L280 150 C300 190 300 250 280 290 L260 320 C260 400 230 500 180 500 C130 500 100 400 100 320 L80 290 C60 250 60 190 80 150 Z"
-              fill={colors.primary}
-              stroke="rgba(255,255,255,0.14)"
-              strokeWidth="2"
-            />
-            <path
-              d="M80 100 C80 65 120 40 180 40 C240 40 280 65 280 100 L280 150 C300 190 300 250 280 290 L260 320 C260 400 230 500 180 500 C130 500 100 400 100 320 L80 290 C60 250 60 190 80 150 Z"
-              fill={pattern !== 'Plain' ? `url(#${fillId})` : 'none'}
-              opacity={pattern === 'Plain' ? 0 : 0.35}
-            />
-            <path d="M80 100 C120 80 160 70 180 70 C200 70 240 80 280 100" fill="none" stroke="rgba(255,255,255,0.14)" strokeWidth="6" opacity="0.5" />
-            <path
-              d={sleevePaths[sleeveStyle]?.left || sleevePaths['Half Sleeve'].left}
-              fill={colors.sleeve}
-              opacity="0.96"
-            />
-            <path
-              d={sleevePaths[sleeveStyle]?.right || sleevePaths['Half Sleeve'].right}
-              fill={colors.sleeve}
-              opacity="0.96"
-            />
-            <path d={collarPaths[collarStyle] || collarPaths['Round Neck']} fill="none" stroke={colors.collar} strokeWidth="18" strokeLinecap="round" />
-            <circle cx="180" cy="120" r="4" fill="rgba(255,255,255,0.6)" />
-            <path d="M100 210 C130 195 160 195 190 210" fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="12" strokeLinecap="round" />
-            <path d="M170 210 C200 195 230 195 260 210" fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="12" strokeLinecap="round" />
+            {/* Body + integrated sleeves */}
+            <path d={body} fill={colors.primary} stroke="rgba(255,255,255,0.14)" strokeWidth="2" />
+            <path d={body} fill={pattern !== 'Plain' ? `url(#${fillId})` : 'none'} opacity={pattern === 'Plain' ? 0 : 0.35} />
+            <path d={body} fill="url(#teeLight)" opacity="0.5" />
+
+            {/* Sleeve cuffs, color-blocked with the sleeve color */}
+            {cuffs && (
+              <>
+                <path d={cuffs.left} fill={colors.sleeve} opacity="0.95" />
+                <path d={cuffs.right} fill={colors.sleeve} opacity="0.95" />
+              </>
+            )}
+
+            {/* Collar ribbing */}
+            <path d={collar.d} fill="none" stroke={colors.collar} strokeWidth={collar.width} strokeLinecap="round" />
+            {collar.placket && (
+              <>
+                <rect x="172" y="50" width="16" height="46" rx="4" fill={colors.collar} opacity="0.85" />
+                <circle cx="180" cy="64" r="2.2" fill="#1f2937" />
+                <circle cx="180" cy="80" r="2.2" fill="#1f2937" />
+              </>
+            )}
+
+            {/* Center seam + hem shading */}
+            <path d="M180,96 L180,468" stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
+            <path d="M98,462 L262,462" stroke="rgba(0,0,0,0.15)" strokeWidth="6" strokeLinecap="round" />
 
             {showFront ? (
               <>
-                <circle cx="110" cy="180" r="24" fill="rgba(255,255,255,0.9)" />
-                <text x="110" y="187" textAnchor="middle" fontSize="16" fill="#111" fontWeight="700">CLUB</text>
-                <rect x="130" y="194" width="100" height="28" rx="10" fill="rgba(0,0,0,0.18)" />
-                <text x="180" y="214" textAnchor="middle" fontSize="14" fill="#fff" fontWeight="700">{sponsor.substring(0, 14)}</text>
+                <circle cx="130" cy="150" r="20" fill="rgba(255,255,255,0.9)" />
+                <text x="130" y="156" textAnchor="middle" fontSize="13" fill="#111" fontWeight="700">CLUB</text>
+                <rect x="150" y="160" width="90" height="24" rx="9" fill="rgba(0,0,0,0.18)" />
+                <text x="195" y="177" textAnchor="middle" fontSize="12" fill="#fff" fontWeight="700">{sponsor.substring(0, 14)}</text>
                 <text
                   x="180"
-                  y="320"
+                  y="300"
                   textAnchor="middle"
-                  fontSize="96"
+                  fontSize="88"
                   fontWeight="900"
                   fill="rgba(255,255,255,0.94)"
                   style={{ fontFamily: font }}
                 >
                   {number || '00'}
                 </text>
-                <text x="180" y="415" textAnchor="middle" fill="rgba(255,255,255,0.55)" fontSize="14">
+                <text x="180" y="400" textAnchor="middle" fill="rgba(255,255,255,0.55)" fontSize="13">
                   {patch}
                 </text>
               </>
@@ -158,35 +165,30 @@ const JerseyPreview = React.forwardRef(({
               <>
                 <text
                   x="180"
-                  y="170"
+                  y="140"
                   textAnchor="middle"
-                  fontSize="26"
+                  fontSize="24"
                   fill="rgba(255,255,255,0.88)"
                   fontWeight="800"
-                  style={{ letterSpacing: '0.18em', fontFamily: font }}
+                  style={{ letterSpacing: '0.16em', fontFamily: font }}
                 >
                   {playerName || 'PLAYER NAME'}
                 </text>
                 <text
                   x="180"
-                  y="300"
+                  y="290"
                   textAnchor="middle"
-                  fontSize="104"
+                  fontSize="96"
                   fill="rgba(255,255,255,0.96)"
                   fontWeight="900"
                   style={{ fontFamily: font }}
                 >
                   {number || '00'}
                 </text>
-                <rect x="145" y="380" width="70" height="28" rx="12" fill="rgba(255,255,255,0.18)" />
-                <text x="180" y="400" textAnchor="middle" fill="rgba(255,255,255,0.9)" fontSize="12" fontWeight="700">{patch}</text>
+                <rect x="150" y="365" width="60" height="24" rx="10" fill="rgba(255,255,255,0.18)" />
+                <text x="180" y="382" textAnchor="middle" fill="rgba(255,255,255,0.9)" fontSize="11" fontWeight="700">{patch}</text>
               </>
             )}
-
-            <g opacity="0.18">
-              <path d="M90 180 Q120 170 150 180" fill="none" stroke="#fff" strokeWidth="8" strokeLinecap="round" />
-              <path d="M210 180 Q240 170 270 180" fill="none" stroke="#fff" strokeWidth="8" strokeLinecap="round" />
-            </g>
           </svg>
         </motion.div>
       </div>

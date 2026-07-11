@@ -148,6 +148,41 @@ const getAllUsers = asyncHandler(async (req, res, next) => {
   res.status(200).json({ success: true, count: users.length, data: users });
 });
 
+// @desc    Toggle user active status (Block/Activate) (Admin)
+// @route   PATCH /api/users/:id/toggle-active
+// @access  Private/Admin
+const toggleUserActive = asyncHandler(async (req, res, next) => {
+  const { id } = req.params;
+
+  if (process.env.USE_FIREBASE === 'true') {
+    const user = await userDao.getById(id);
+    if (!user) {
+      return next(new ErrorHandler('User not found', 404));
+    }
+    const currentStatus = user.isActive !== false; // Default to true
+    const updated = await userDao.update(id, { isActive: !currentStatus });
+    return res.status(200).json({
+      success: true,
+      message: `User successfully ${!currentStatus ? 'activated' : 'blocked'}`,
+      data: updated
+    });
+  }
+
+  const user = await User.findById(id);
+  if (!user) {
+    return next(new ErrorHandler('User not found', 404));
+  }
+
+  user.isActive = user.isActive !== false ? false : true;
+  await user.save();
+
+  res.status(200).json({
+    success: true,
+    message: `User successfully ${user.isActive ? 'activated' : 'blocked'}`,
+    data: user
+  });
+});
+
 export {
   getUserProfile,
   updateProfile,
@@ -155,5 +190,6 @@ export {
   addAddress,
   updateAddress,
   deleteAddress,
-  getAllUsers
+  getAllUsers,
+  toggleUserActive
 };

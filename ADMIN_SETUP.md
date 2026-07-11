@@ -111,24 +111,25 @@ After login, you'll see **"Admin Dashboard"** in the user menu (top-right corner
 
 ---
 
-## 🔧 Creating Additional Admin Accounts
+## 🔧 Creating Admin Accounts
 
-### Option 1: Using the Script
+### Mode A: MongoDB Mode (If `USE_FIREBASE=false`)
+
+#### Option 1: Using the Script
 ```bash
 cd backend
 node scripts/createAdmin.js
 ```
-
 This creates a new admin with:
-- Email: `admin@ecommerce.com`
-- Password: `admin123`
+- **Email:** `admin@ecommerce.com`
+- **Password:** `admin123`
 
-### Option 2: Manually (Database)
+#### Option 2: Manually (Database)
+Connect to your MongoDB server and insert a user document directly:
 ```javascript
-// Connect to MongoDB and insert:
 db.users.insertOne({
-  name: "Your Name",
-  email: "youremail@example.com",
+  name: "Admin User",
+  email: "admin@ecommerce.com",
   password: "hashedPassword",
   phone: "9999999999",
   role: "admin",
@@ -137,6 +138,26 @@ db.users.insertOne({
   updatedAt: new Date()
 })
 ```
+
+---
+
+### Mode B: Firebase Mode (If `USE_FIREBASE=true`)
+
+#### Step 1: Register a User Account
+1. Ensure both your frontend and backend servers are running locally (`npm run dev` / `node server.js`).
+2. Open your web browser and navigate to: **`http://localhost:5173/register`**
+3. Create an account with your credentials, e.g.:
+   - **Email:** `admin@gmail.com`
+   - **Password:** `Admin@123`
+
+#### Step 2: Promote user to admin
+1. Open a terminal to your `backend/` folder.
+2. Run the promotion script, pointing to your registered email:
+   ```bash
+   node scripts/firebaseUserCheck.js promote admin@gmail.com
+   ```
+   *(Replace `admin@gmail.com` with the email you registered in Step 1).*
+3. Log in at `http://localhost:5173/login` using the upgraded credentials. You will now have administrative authorization.
 
 ---
 

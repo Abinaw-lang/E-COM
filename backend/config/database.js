@@ -4,7 +4,7 @@ let connectDB = async () => {
     return null;
   }
 
-  // Lazy require to avoid importing mongoose when using Firebase
+  // Lazy require to avoid importing mongoose when using Firebase4
   const mongoose = await import('mongoose');
   try {
     const conn = await mongoose.connect(process.env.MONGODB_URI);

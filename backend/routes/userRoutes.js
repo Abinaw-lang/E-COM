@@ -6,7 +6,8 @@ import {
   addAddress,
   updateAddress,
   deleteAddress,
-  getAllUsers
+  getAllUsers,
+  toggleUserActive
 } from '../controllers/userController.js';
 import { protect, authorize } from '../middleware/auth.js';
 import {
@@ -30,5 +31,6 @@ router.delete('/addresses/:id', deleteAddress);
 
 // Admin routes
 router.get('/', authorize('admin'), getAllUsers);
+router.patch('/:id/toggle-active', authorize('admin'), toggleUserActive);
 
 export default router;
