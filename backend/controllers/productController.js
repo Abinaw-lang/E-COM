@@ -2,6 +2,7 @@ import Product from '../models/Product.js';
 import ErrorHandler from '../utils/errorHandler.js';
 import asyncHandler from '../utils/asyncHandler.js';
 import productDao from '../daos/productDao.js';
+import { uploadImage } from '../services/imageService.js';
 
 // @desc    Get all products
 // @route   GET /api/products
@@ -104,6 +105,33 @@ const getProductById = asyncHandler(async (req, res, next) => {
   res.status(200).json({ success: true, data: product });
 });
 
+// @desc    Upload product image
+// @route   POST /api/products/upload-image
+// @access  Private/Admin
+const uploadProductImageHandler = asyncHandler(async (req, res, next) => {
+  const { fileBase64, fileName, fileType } = req.body;
+
+  if (!fileBase64) {
+    return next(new ErrorHandler('Image file is required', 400));
+  }
+
+  const result = await uploadImage(fileBase64, 'ecommerce/products', {
+    fileName: fileName || `product-${Date.now()}`,
+    contentType: fileType || 'application/octet-stream'
+  });
+
+  if (!result.success) {
+    return next(new ErrorHandler(result.error || 'Image upload failed', 400));
+  }
+
+  return res.status(200).json({
+    success: true,
+    message: 'Image uploaded successfully',
+    url: result.url,
+    publicId: result.publicId
+  });
+});
+
 // @desc    Create product (Admin)
 // @route   POST /api/products
 // @access  Private/Admin
@@ -204,6 +232,7 @@ const getCategories = asyncHandler(async (req, res, next) => {
 export {
   getAllProducts,
   getProductById,
+  uploadProductImageHandler,
   createProduct,
   updateProduct,
   deleteProduct,

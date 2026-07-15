@@ -16,8 +16,6 @@ import {
   ChevronDown
 } from 'lucide-react';
 import { productService, adminService } from '../services';
-import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
-import { storage } from '../firebase';
 import { toast } from 'react-toastify';
 import AdminLayout from '../layouts/AdminLayout';
 
@@ -207,7 +205,7 @@ const AdminProducts = () => {
     setShowForm(true);
   };
 
-  // Image direct upload to storage
+  // Upload images through the backend Firebase Storage endpoint
   const handleFileUpload = async (files) => {
     if (!files || files.length === 0) return;
     setUploadProgress(0);
@@ -216,27 +214,35 @@ const AdminProducts = () => {
     try {
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        const fileName = `${Date.now()}__${file.name.replace(/\s+/g, '_')}`;
-        const storageRef = ref(storage, `products/${fileName}`);
-        const uploadTask = uploadBytesResumable(storageRef, file);
+        const fileReader = new FileReader();
 
-        await new Promise((resolve, reject) => {
-          uploadTask.on('state_changed',
-            (snapshot) => {
-              const progress = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
-              setUploadProgress(progress);
-            },
-            (error) => {
-              reject(error);
-            },
-            async () => {
-              const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-              uploadedUrls.push({ url: downloadURL });
-              resolve();
+        const base64 = await new Promise((resolve, reject) => {
+          fileReader.onload = () => {
+            const result = fileReader.result;
+            if (typeof result === 'string') {
+              resolve(result);
+            } else {
+              reject(new Error('Unable to read file'));
             }
-          );
+          };
+          fileReader.onerror = () => reject(new Error('Unable to read file'));
+          fileReader.readAsDataURL(file);
         });
+
+        const response = await productService.uploadProductImage({
+          fileBase64: base64,
+          fileName: `${Date.now()}__${file.name.replace(/\s+/g, '_')}`,
+          fileType: file.type || 'image/jpeg'
+        });
+
+        const uploadedUrl = response?.data?.url;
+        if (uploadedUrl) {
+          uploadedUrls.push({ url: uploadedUrl });
+        }
+
+        setUploadProgress(Math.round(((i + 1) / files.length) * 100));
       }
+
       setFormData(prev => ({
         ...prev,
         images: [...prev.images, ...uploadedUrls]

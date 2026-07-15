@@ -2,6 +2,7 @@ import express from 'express';
 import {
   getAllProducts,
   getProductById,
+  uploadProductImageHandler,
   createProduct,
   updateProduct,
   deleteProduct,
@@ -24,6 +25,7 @@ router.get('/categories', getCategories);
 router.get('/:id', getProductById);
 
 // Admin routes
+router.post('/upload-image', protect, authorize('admin'), uploadProductImageHandler);
 router.post('/', protect, authorize('admin'), validateAddProduct, handleValidationErrors, createProduct);
 router.put('/:id', protect, authorize('admin'), validateUpdateProduct, handleValidationErrors, updateProduct);
 router.delete('/:id', protect, authorize('admin'), deleteProduct);

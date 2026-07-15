@@ -27,6 +27,7 @@ export const userService = {
 export const productService = {
   getAllProducts: (params) => api.get('/products', { params }),
   getProductById: (id) => api.get(`/products/${id}`),
+  uploadProductImage: (data) => api.post('/products/upload-image', data),
   createProduct: (data) => api.post('/products', data),
   updateProduct: (id, data) => api.put(`/products/${id}`, data),
   deleteProduct: (id) => api.delete(`/products/${id}`),
