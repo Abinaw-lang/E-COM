@@ -2,7 +2,6 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
-import connectDB from './config/database.js';
 import errorHandler from './middleware/errorHandler.js';
 
 // Routes
@@ -23,18 +22,13 @@ dotenv.config();
 // Initialize Express app
 const app = express();
 
-// Connect to database (MongoDB) or initialize Firebase (Firestore)
-const useFirebase = process.env.USE_FIREBASE === 'true';
-if (useFirebase) {
-  try {
-    await import('./config/firebase.js');
-    console.log('Initialized Firebase Admin SDK (using Firestore)');
-  } catch (err) {
-    console.error('Failed to initialize Firebase:', err.message);
-    process.exit(1);
-  }
-} else {
-  connectDB();
+// Initialize Firebase (Firestore)
+try {
+  await import('./config/firebase.js');
+  console.log('Initialized Firebase Admin SDK (using Firestore)');
+} catch (err) {
+  console.error('Failed to initialize Firebase:', err.message);
+  process.exit(1);
 }
 
 // Middleware
